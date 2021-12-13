@@ -4,6 +4,7 @@ from .coco import COCODataset
 from .voc import PascalVOCDataset
 from .concat_dataset import ConcatDataset
 from .abstract import AbstractDataset
+from .flickr import Flickr
 from .cityscapes import CityScapesDataset
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "PascalVOCDataset",
     "AbstractDataset",
     "CityScapesDataset",
+    "Flickr"
 ]

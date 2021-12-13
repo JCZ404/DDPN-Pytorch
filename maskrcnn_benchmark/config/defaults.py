@@ -10,15 +10,18 @@ from yacs.config import CfgNode as CN
 # Whenever an argument can be either used for training or for testing, the
 # corresponding name will be post-fixed by a _TRAIN for a training parameter,
 # or _TEST for a test-specific parameter.
-# For example, the maximum image side during training will be
-# INPUT.MAX_SIZE_TRAIN, while for testing it will be
-# INPUT.MAX_SIZE_TEST
+# For example, the number of images during training will be
+# IMAGES_PER_BATCH_TRAIN, while the number of images for testing will be
+# IMAGES_PER_BATCH_TEST
+
 
 # -----------------------------------------------------------------------------
 # Config definition
 # -----------------------------------------------------------------------------
 
 _C = CN()
+
+_C.DEBUG = False
 
 _C.MODEL = CN()
 _C.MODEL.RPN_ONLY = False
@@ -29,10 +32,131 @@ _C.MODEL.DEVICE = "cuda"
 _C.MODEL.META_ARCHITECTURE = "GeneralizedRCNN"
 _C.MODEL.CLS_AGNOSTIC_BBOX_REG = False
 
+
+
+# the model initial weight this weight will be fully loaded
 # If the WEIGHT starts with a catalog://, like :R-50, the code will look for
 # the path in paths_catalog. Else, it will use it as the specified absolute
 # path
-_C.MODEL.WEIGHT = ""
+_C.MODEL.WEIGHT = ''
+
+# using pre-train model weight, the program will load the weights as much as
+# it can. For modified/extended model.
+_C.MODEL.USE_DET_PRETRAIN = ''
+
+_C.DISTRIBUTED = False
+
+# -----------------------------------------------------------------------------
+# VG Config
+# -----------------------------------------------------------------------------
+_C.MODEL.VG = CN()
+
+_C.MODEL.VG_ON = True
+_C.MODEL.VG.FIXED_BACKBONE = False
+_C.MODEL.VG.FIXED_RPN = False
+_C.MODEL.VG.FIXED_FPN = False
+_C.MODEL.VG.FIXED_ROI_HEAD = False
+_C.MODEL.VG.FG_IOU_THRESHOLD = 0.5
+_C.MODEL.VG.BG_IOU_THRESHOLD = 0.3
+_C.MODEL.VG.FG_REG_IOU_THRESHOLD = 0.5
+_C.MODEL.VG.VOCAB_FILE = "flickr_datasets/skip-thoughts/vocab.json"
+_C.MODEL.VG.SKIP_THROUGH_DATA_DIR = "flickr_datasets/skip-thoughts"
+_C.MODEL.VG.DETECTION_VOCAB_FILE = 'flickr_datasets/flickr30k_anno/object_vocab_genome.json'
+_C.MODEL.VG.FIXED_EMBEDDING = False
+_C.MODEL.VG.FIXED_RESNET = True
+# _C.MODEL.VG.RESNET_PARAMS_FILE = "./outputs/bottom-up-pretrained/bottomup_pretrained_10_100.pth"
+_C.MODEL.VG.RESNET_PARAMS_FILE = "/data2/xrlin/LCMCG-PyTorch/flickr_datasets/bottom-up-pretrained/faster_rcnn_R-50-C4.pkl"
+_C.MODEL.VG.PHRASE_SELECT_TYPE = "MEAN"
+_C.MODEL.VG.LANGUAGE_EMBED = "GRU"
+_C.MODEL.VG.SPATIAL_FEAT = True
+_C.MODEL.VG.OBJECT_VOCAB = True
+_C.MODEL.VG.PHRASE_EMBED_TYPE = 'Sent'
+_C.MODEL.VG.USE_BOTTOMUP_NMS = True
+_C.MODEL.VG.BOTTOMUP_NMS_THRESH = 0.55
+_C.MODEL.VG.USE_TOPN = False
+_C.MODEL.VG.TWO_STAGE = False
+_C.MODEL.VG.TWO_STAGE_TYPE = 'Uni'
+_C.MODEL.VG.CLS_LOSS_TYPE = 'Softmax'
+_C.MODEL.VG.REL_LOSS_TYPE = 'Softmax'
+_C.MODEL.VG.HEATMAP_SIZE = 64
+_C.MODEL.VG.RELATION_FG = 0.5
+_C.MODEL.VG.RELATION_BG = 0.3
+_C.MODEL.VG.EVAL_THRESH = 0.5
+_C.MODEL.VG.TOPN = 10
+_C.MODEL.VG.JOINT_TRANS = True
+
+
+
+_C.BBOX_NORMALIZE_TARGETS_PRECOMPUTED = True
+_C.BBOX_NORMALIZE_MEANS = (0.0, 0.0, 0.0, 0.0)
+_C.BBOX_NORMALIZE_STDS = (0.1, 0.1, 0.2, 0.2)
+
+
+# -----------------------------------------------------------------------------
+# VRD Config
+# -----------------------------------------------------------------------------
+_C.MODEL.RELATION = CN()
+
+_C.MODEL.RELATION_ON = True
+
+_C.MODEL.RELATION.RELATION_CLASS = 51
+
+_C.MODEL.RELATION.REMOVE_REPEAT = False
+
+_C.MODEL.RELATION.SAMPLE_DETECTION_BOX = True
+
+_C.MODEL.RELATION.NEG_POS_PHRASE_PROP_RATE = 4
+
+_C.MODEL.RELATION.MAKE_PAIR_PROPOSAL_CNT = 150
+
+_C.MODEL.RELATION.MAX_PROPOSAL_PAIR = 4096
+
+_C.MODEL.RELATION.PHRASE_POOLED_SIZE = 8
+
+_C.MODEL.RELATION.FIXED_RPN = True
+
+_C.MODEL.RELATION.FIXED_ROI_HEAD = False
+# set true will use the detection box for relation
+_C.MODEL.RELATION.USE_DETECTION_RESULT_FOR_RELATION = False
+# weither apply the regression on proposal boxes
+_C.MODEL.RELATION.APPLY_REGRESSION = True
+# cluster the phrase region otherwise too many redundant phrase boxes
+_C.MODEL.RELATION.PHRASE_CLUSTER = False
+
+# select topk score relation triplets while test  performance
+_C.MODEL.RELATION.TOPK_TRIPLETS = (50, 100, )
+# whither Relation head and RPN using same backbone
+# when don't separated the both head use same fixed backbone and RPN
+_C.MODEL.RELATION.SEPARATED_BACKBONE = True
+
+_C.MODEL.RELATION.FIXED_BACKBONE = False
+
+_C.MODEL.RELATION.FEATURE_REFINE = CN()
+
+# the filter number of massage passing unit
+_C.MODEL.RELATION.FEATURE_REFINE.MASSAGE_PASSING = 0
+
+_C.MODEL.RELATION.FEATURE_REFINE.MP_UNIT_OUTPUT_DIM = 128
+
+_C.MODEL.RELATION.FEATURE_REFINE.MSG_APPLY = "mean"  # two_step_fc
+
+_C.MODEL.RELATION.INCOR_ENTITIES_IN_RELATION = True
+_C.MODEL.RELATION.INTRA_LAN = True
+_C.MODEL.RELATION.INTRA_LAN_PASSING_TIME = 1
+_C.MODEL.RELATION.VISUAL_GRAPH = True
+_C.MODEL.RELATION.VISUAL_GRAPH_TYPE = 'Dense'
+_C.MODEL.RELATION.VISUAL_GRAPH_PASSING_TIME = 1
+_C.MODEL.RELATION.USE_RELATION_CONST = False
+_C.MODEL.RELATION.REL_CONST_TYPE = 'Softmax'
+_C.MODEL.RELATION.REL_PAIR_IOU = True
+_C.MODEL.RELATION.RELATION_FEATURES = True
+
+
+
+
+
+
+
 
 
 # -----------------------------------------------------------------------------
@@ -54,15 +178,6 @@ _C.INPUT.PIXEL_STD = [1., 1., 1.]
 # Convert image to BGR format (for Caffe2 models), in range 0-255
 _C.INPUT.TO_BGR255 = True
 
-# Image ColorJitter
-_C.INPUT.BRIGHTNESS = 0.0
-_C.INPUT.CONTRAST = 0.0
-_C.INPUT.SATURATION = 0.0
-_C.INPUT.HUE = 0.0
-
-# Flips
-_C.INPUT.HORIZONTAL_FLIP_PROB_TRAIN = 0.5
-_C.INPUT.VERTICAL_FLIP_PROB_TRAIN = 0.0
 
 # -----------------------------------------------------------------------------
 # Dataset
@@ -98,9 +213,12 @@ _C.MODEL.BACKBONE = CN()
 # (e.g., 'FPN.add_fpn_ResNet101_conv5_body' to specify a ResNet-101-FPN
 # backbone)
 _C.MODEL.BACKBONE.CONV_BODY = "R-50-C4"
+_C.MODEL.BACKBONE.LAST_LAYER_STRIDE = 1
 
 # Add StopGrad at a specified stage so the bottom layers are frozen
 _C.MODEL.BACKBONE.FREEZE_CONV_BODY_AT = 2
+# GN for backbone
+_C.MODEL.BACKBONE.USE_GN = False
 
 
 # ---------------------------------------------------------------------------- #
@@ -147,7 +265,7 @@ _C.MODEL.RPN.FG_IOU_THRESHOLD = 0.7
 # ==> negative RPN example)
 _C.MODEL.RPN.BG_IOU_THRESHOLD = 0.3
 # Total number of RPN examples per image
-_C.MODEL.RPN.BATCH_SIZE_PER_IMAGE = 256
+_C.MODEL.RPN.BATCH_SIZE_PER_IMAGE = 128
 # Target fraction of foreground (positive) examples per RPN minibatch
 _C.MODEL.RPN.POSITIVE_FRACTION = 0.5
 # Number of top scoring RPN proposals to keep before applying NMS
@@ -166,9 +284,6 @@ _C.MODEL.RPN.MIN_SIZE = 0
 # all FPN levels
 _C.MODEL.RPN.FPN_POST_NMS_TOP_N_TRAIN = 2000
 _C.MODEL.RPN.FPN_POST_NMS_TOP_N_TEST = 2000
-# Apply the post NMS per batch (default) or per image during training
-# (default is True to be consistent with Detectron, see Issue #672)
-_C.MODEL.RPN.FPN_POST_NMS_PER_BATCH = True
 # Custom rpn head, empty to use default conv or separable conv
 _C.MODEL.RPN.RPN_HEAD = "SingleConvRPNHead"
 
@@ -190,7 +305,9 @@ _C.MODEL.ROI_HEADS.BBOX_REG_WEIGHTS = (10., 10., 5., 5.)
 # Total number of RoIs per training minibatch =
 #   TRAIN.BATCH_SIZE_PER_IM * TRAIN.IMS_PER_BATCH
 # E.g., a common configuration is: 512 * 2 * 8 = 8192
-_C.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 512
+
+# in the relation model the detection ROI Head share the relation proposal limit
+_C.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = _C.MODEL.RELATION.MAKE_PAIR_PROPOSAL_CNT * 2
 # Target fraction of RoI minibatch that is labeled foreground (i.e. class > 0)
 _C.MODEL.ROI_HEADS.POSITIVE_FRACTION = 0.25
 
@@ -199,10 +316,10 @@ _C.MODEL.ROI_HEADS.POSITIVE_FRACTION = 0.25
 # Minimum score threshold (assuming scores in a [0, 1] range); a value chosen to
 # balance obtaining high recall with not having too many low precision
 # detections that will slow down inference post processing steps (like NMS)
-_C.MODEL.ROI_HEADS.SCORE_THRESH = 0.01
+_C.MODEL.ROI_HEADS.SCORE_THRESH = 0.05
 # Overlap threshold used for non-maximum suppression (suppress boxes with
 # IoU >= this threshold)
-_C.MODEL.ROI_HEADS.NMS = 0.3
+_C.MODEL.ROI_HEADS.NMS = 0.5
 # Maximum number of detections to return per image (100 is based on the limit
 # established for the COCO dataset)
 _C.MODEL.ROI_HEADS.DETECTIONS_PER_IMG = 100
@@ -283,10 +400,6 @@ _C.MODEL.RESNETS.RES5_DILATION = 1
 _C.MODEL.RESNETS.BACKBONE_OUT_CHANNELS = 256 * 4
 _C.MODEL.RESNETS.RES2_OUT_CHANNELS = 256
 _C.MODEL.RESNETS.STEM_OUT_CHANNELS = 64
-
-_C.MODEL.RESNETS.STAGE_WITH_DCN = (False, False, False, False)
-_C.MODEL.RESNETS.WITH_MODULATED_DCN = False
-_C.MODEL.RESNETS.DEFORMABLE_GROUPS = 1
 
 
 # ---------------------------------------------------------------------------- #
@@ -395,6 +508,9 @@ _C.SOLVER.MAX_ITER = 40000
 
 _C.SOLVER.BASE_LR = 0.001
 _C.SOLVER.BIAS_LR_FACTOR = 2
+_C.SOLVER.RESNET_LR_FACTOR = 1.0
+_C.SOLVER.FPN_LR_FACTOR = 1.0
+_C.SOLVER.PHRASE_EMBEDDING_LR_FACTOR = 1.0
 
 _C.SOLVER.MOMENTUM = 0.9
 
@@ -407,14 +523,21 @@ _C.SOLVER.STEPS = (30000,)
 _C.SOLVER.WARMUP_FACTOR = 1.0 / 3
 _C.SOLVER.WARMUP_ITERS = 500
 _C.SOLVER.WARMUP_METHOD = "linear"
+_C.SOLVER.USE_KLD = True
+_C.SOLVER.TYPE = "SGD"
+_C.SOLVER.REGLOSS_FACTOR = 0.1
+_C.SOLVER.RELATION_FACTOR = 0.1
 
+_C.SOLVER.START_SAVE_CHECKPOINT = 10000
 _C.SOLVER.CHECKPOINT_PERIOD = 2500
-_C.SOLVER.TEST_PERIOD = 0
+
+_C.SOLVER.TEST_WHILE_TRAIN = False
+_C.SOLVER.TEST_PERIOD  = 0
 
 # Number of images per batch
 # This is global, so if we have 8 GPUs and IMS_PER_BATCH = 16, each GPU will
 # see 2 images per batch
-_C.SOLVER.IMS_PER_BATCH = 16
+_C.SOLVER.IMS_PER_BATCH = 1
 
 # ---------------------------------------------------------------------------- #
 # Specific test options
@@ -425,30 +548,9 @@ _C.TEST.EXPECTED_RESULTS_SIGMA_TOL = 4
 # Number of images per batch
 # This is global, so if we have 8 GPUs and IMS_PER_BATCH = 16, each GPU will
 # see 2 images per batch
-_C.TEST.IMS_PER_BATCH = 8
+_C.TEST.IMS_PER_BATCH =8
 # Number of detections per image
 _C.TEST.DETECTIONS_PER_IMG = 100
-
-# ---------------------------------------------------------------------------- #
-# Test-time augmentations for bounding box detection
-# See configs/test_time_aug/e2e_mask_rcnn_R-50-FPN_1x.yaml for an example
-# ---------------------------------------------------------------------------- #
-_C.TEST.BBOX_AUG = CN()
-
-# Enable test-time augmentation for bounding box detection if True
-_C.TEST.BBOX_AUG.ENABLED = False
-
-# Horizontal flip at the original scale (id transform)
-_C.TEST.BBOX_AUG.H_FLIP = False
-
-# Each scale is the pixel size of an image's shortest side
-_C.TEST.BBOX_AUG.SCALES = ()
-
-# Max pixel size of the longer side
-_C.TEST.BBOX_AUG.MAX_SIZE = 4000
-
-# Horizontal flip at each scale
-_C.TEST.BBOX_AUG.SCALE_H_FLIP = False
 
 
 # ---------------------------------------------------------------------------- #
@@ -458,12 +560,35 @@ _C.OUTPUT_DIR = "."
 
 _C.PATHS_CATALOG = os.path.join(os.path.dirname(__file__), "paths_catalog.py")
 
-# ---------------------------------------------------------------------------- #
-# Precision options
-# ---------------------------------------------------------------------------- #
 
-# Precision of input, allowable: (float32, float16)
-_C.DTYPE = "float32"
-
-# Enable verbosity in apex.amp
-_C.AMP_VERBOSE = False
+_C.OUTPUT_DIR = "outputs/flickr_ResNet50_pascal/ddpnResNet50_softmax_lr_0p1_reg_0p5.hidden_1024_diverse.sent_graph_top10_visualGraph_two_stage_rel_sample2" 
+_C.SOLVER.IMS_PER_BATCH = 2
+_C.SOLVER.TYPE = "SGD" 
+_C.SOLVER.BASE_LR = 0.1 
+_C.SOLVER.REGLOSS_FACTOR = 0.1 
+_C.SOLVER.RELATION_FACTOR = 1.0 
+_C.MODEL.VG.PHRASE_SELECT_TYPE = 'Mean' 
+_C.MODEL.VG.PHRASE_EMBED_TYPE = 'BaseSent' 
+_C.MODEL.VG.TWO_STAGE = True 
+_C.MODEL.VG.TOPN = 10 
+_C.MODEL.VG.JOINT_TRANS = True  
+_C.MODEL.VG.SPATIAL_FEAT = True 
+_C.MODEL.RELATION_ON = True 
+_C.MODEL.RELATION.RELATION_FEATURES = True  
+_C.MODEL.RELATION.INTRA_LAN = True  
+_C.MODEL.RELATION.INCOR_ENTITIES_IN_RELATION = True 
+_C.MODEL.RELATION.INTRA_LAN_PASSING_TIME = 1 
+_C.MODEL.RELATION.VISUAL_GRAPH = True 
+_C.MODEL.RELATION.VISUAL_GRAPH_PASSING_TIME = 1 
+_C.MODEL.RELATION.USE_RELATION_CONST = True 
+_C.MODEL.RELATION.REL_CONST_TYPE = 'Softmax' 
+_C.MODEL.RELATION.REL_PAIR_IOU = True  
+_C.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION = 14 
+_C.DATALOADER.NUM_WORKERS = 8 
+_C.SOLVER.CHECKPOINT_PERIOD = 4000 
+_C.SOLVER.START_SAVE_CHECKPOINT = 4000 
+_C.SOLVER.MAX_ITER =  120001 
+_C.SOLVER.STEPS = (20000, 40000)
+_C.TEST.IMS_PER_BATCH = 1 
+#   MODEL.WEIGHT "$output_dir/$train_instance/checkpoints/model_0044000.pth" \
+_C.MODEL.USE_DET_PRETRAIN = ""

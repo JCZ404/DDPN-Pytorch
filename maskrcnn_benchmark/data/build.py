@@ -4,6 +4,8 @@ import copy
 import logging
 
 import torch.utils.data
+from maskrcnn_benchmark.data.transforms import transforms_vg
+from maskrcnn_benchmark.data.transforms.build import build_transforms_vg
 from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.miscellaneous import save_labels
@@ -11,8 +13,9 @@ from maskrcnn_benchmark.utils.miscellaneous import save_labels
 from . import datasets as D
 from . import samplers
 
-from .collate_batch import BatchCollator, BBoxAugCollator
+from .collate_batch import BatchCollator, BBoxAugCollator, RelationBatchCollator, VGBatchCollator
 from .transforms import build_transforms
+from maskrcnn_benchmark.data import transforms
 
 
 def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True):
@@ -105,6 +108,15 @@ def make_batch_data_sampler(
     return batch_sampler
 
 
+#! add the batch data collator for some special data like relation data
+def make_batch_collator(cfg):
+    if cfg.MODEL.VG_ON:
+        return VGBatchCollator(cfg.DATALOADER.SIZE_DIVISIBILITY)
+    elif cfg.MODEL.RELATION_ON:
+        return RelationBatchCollator(cfg.DATALOADER.SIZE_DIVISIBILITY)
+    else:
+        return BatchCollator(cfg.DATALOADER.SIZE_DIVISIBILITY)
+
 def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, is_for_period=False):
     num_gpus = get_world_size()
     if is_train:
@@ -152,7 +164,9 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, is_
     dataset_list = cfg.DATASETS.TRAIN if is_train else cfg.DATASETS.TEST
 
     # If bbox aug is enabled in testing, simply set transforms to None and we will apply transforms later
-    transforms = None if not is_train and cfg.TEST.BBOX_AUG.ENABLED else build_transforms(cfg, is_train)
+    # transforms = None if not is_train and cfg.TEST.BBOX_AUG.ENABLED else build_transforms(cfg, is_train)
+    #! use the visual grounding transform
+    transforms = build_transforms_vg(cfg, is_train)
     datasets = build_dataset(dataset_list, transforms, DatasetCatalog, is_train or is_for_period)
 
     if is_train:
@@ -165,8 +179,10 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, is_
         batch_sampler = make_batch_data_sampler(
             dataset, sampler, aspect_grouping, images_per_gpu, num_iters, start_iter
         )
-        collator = BBoxAugCollator() if not is_train and cfg.TEST.BBOX_AUG.ENABLED else \
-            BatchCollator(cfg.DATALOADER.SIZE_DIVISIBILITY)
+        # collator = BBoxAugCollator() if not is_train and cfg.TEST.BBOX_AUG.ENABLED else \
+        #     BatchCollator(cfg.DATALOADER.SIZE_DIVISIBILITY)
+        #! use the added collator
+        collator = make_batch_collator(cfg)
         num_workers = cfg.DATALOADER.NUM_WORKERS
         data_loader = torch.utils.data.DataLoader(
             dataset,

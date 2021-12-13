@@ -147,6 +147,23 @@ class DatasetCatalog(object):
             "mode": "mask",
             "mini": 10,
         },
+        #! add flickr30k datasetE
+        "flickr_train": {
+            'img_dir': '../flickr_datasets/flickr30k_images',
+            'anno_dir': '../flickr_datasets/flickr30k_anno',
+            'split': '../flickr_datasets/split/train.txt',
+        },
+        "flickr_val": {
+            'img_dir': '../flickr_datasets/flickr30k_images',
+            'anno_dir': '../flickr_datasets/flickr30k_anno',
+            'split': '../flickr_datasets/split/val.txt',
+        },
+        "flickr_test": {
+            'img_dir': '../flickr_datasets/flickr30k_images',
+            'anno_dir': '../flickr_datasets/flickr30k_anno',
+            'split': '../flickr_datasets/split/test.txt',
+        },
+
     }
 
     @staticmethod
@@ -179,6 +196,15 @@ class DatasetCatalog(object):
             attrs["img_dir"] = os.path.join(data_dir, attrs["img_dir"])
             attrs["ann_dir"] = os.path.join(data_dir, attrs["ann_dir"])
             return dict(factory="CityScapesDataset", args=attrs)
+        #! add the get method to get flickr dataset
+        elif 'flickr' in name:
+            data_dir = DatasetCatalog.DATA_DIR
+            attrs = DatasetCatalog.DATASETS[name]
+            args = attrs
+            return {
+                'factory': 'Flickr',
+                'args': args
+            }
         raise RuntimeError("Dataset not available: {}".format(name))
 
 
