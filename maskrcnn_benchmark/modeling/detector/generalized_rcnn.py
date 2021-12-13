@@ -30,7 +30,7 @@ class GeneralizedRCNN(nn.Module):
         self.rpn = build_rpn(cfg, self.backbone.out_channels)
         self.roi_heads = build_roi_heads(cfg, self.backbone.out_channels)
 
-    def forward(self, images, targets=None):
+    def forward(self, images, targets=None, image_name=None):
         """
         Arguments:
             images (list[Tensor] or ImageList): images to be processed
@@ -61,5 +61,23 @@ class GeneralizedRCNN(nn.Module):
             losses.update(detector_losses)
             losses.update(proposal_losses)
             return losses
-
+        else: 
+            #! for test, we save the feature and proposal we want
+            import numpy as np
+            res = dict()
+            res["features"] = features[0].cpu().numpy()
+            scores = result[0].get_field('scores')[:,None].cpu().numpy()
+            # print("Shape of Proposal score:",scores.shape)
+            labels = result[0].get_field('labels')[:,None].cpu().numpy()
+            # print("Shape of Proposal labels:",labels.shape)
+            boxes = result[0].bbox.cpu().numpy()
+            t = np.hstack([boxes,scores,labels])
+            # print("Shape of the final box information:",t.shape)
+            res["boxes"] = t
+            res["img_scale"] = result[0].size
+            # print("The input image size of the network:", res["img_scale"])
+            import pickle as pkl
+            with open("/data2/zjc/flickr30k_feat_nms/{}.pkl".format(image_name.split(".")[0]),'wb') as f:
+                pkl.dump(res,f)
+            
         return result

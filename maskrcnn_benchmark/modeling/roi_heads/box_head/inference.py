@@ -115,27 +115,33 @@ class PostProcessor(nn.Module):
         scores = boxlist.get_field("scores").reshape(-1, num_classes)
 
         device = scores.device
-        result = []
-        # Apply threshold on detection probabilities and apply NMS
-        # Skip j = 0, because it's the background class
-        inds_all = scores > self.score_thresh
-        for j in range(1, num_classes):
-            inds = inds_all[:, j].nonzero().squeeze(1)
-            scores_j = scores[inds, j]
-            boxes_j = boxes[inds, j * 4 : (j + 1) * 4]
-            boxlist_for_class = BoxList(boxes_j, boxlist.size, mode="xyxy")
-            boxlist_for_class.add_field("scores", scores_j)
-            boxlist_for_class = boxlist_nms(
-                boxlist_for_class, self.nms
-            )
-            num_labels = len(boxlist_for_class)
-            boxlist_for_class.add_field(
-                "labels", torch.full((num_labels,), j, dtype=torch.int64, device=device)
-            )
-            result.append(boxlist_for_class)
+        #! make some change to ensure there at least 10 proposal per image
+        number_of_detections = 0
+        i = 0
+        while number_of_detections<10:
+            self.score_thresh = self.score_thresh - i*0.001
+            i = i+1
+            result = []
+            # Apply threshold on detection probabilities and apply NMS
+            # Skip j = 0, because it's the background class
+            inds_all = scores > self.score_thresh
+            for j in range(1, num_classes):
+                inds = inds_all[:, j].nonzero().squeeze(1)
+                scores_j = scores[inds, j]
+                boxes_j = boxes[inds, j * 4 : (j + 1) * 4]
+                boxlist_for_class = BoxList(boxes_j, boxlist.size, mode="xyxy")
+                boxlist_for_class.add_field("scores", scores_j)
+                boxlist_for_class = boxlist_nms(
+                    boxlist_for_class, self.nms
+                )
+                num_labels = len(boxlist_for_class)
+                boxlist_for_class.add_field(
+                    "labels", torch.full((num_labels,), j, dtype=torch.int64, device=device)
+                )
+                result.append(boxlist_for_class)
 
-        result = cat_boxlist(result)
-        number_of_detections = len(result)
+            result = cat_boxlist(result)
+            number_of_detections = len(result)
 
         # Limit to max_per_image detections **over all classes**
         if number_of_detections > self.detections_per_img > 0:

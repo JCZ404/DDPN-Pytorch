@@ -196,7 +196,7 @@ class COCODemo(object):
         )
         return transform
 
-    def run_on_opencv_image(self, image):
+    def run_on_opencv_image(self, image, image_name):   #! add a image_name parameter to enable to save the image proposal info
         """
         Arguments:
             image (np.ndarray): an image as returned by OpenCV
@@ -206,22 +206,25 @@ class COCODemo(object):
                 of the detection properties can be found in the fields of
                 the BoxList via `prediction.fields()`
         """
-        predictions = self.compute_prediction(image)
+        predictions = self.compute_prediction(image, image_name)
+        print("Num of Proposal before object confidence filtering:",len(predictions))
         top_predictions = self.select_top_predictions(predictions)
+        # print("Num of Proposal after object confidence filtering:",len(top_predictions))
 
         result = image.copy()
         if self.show_mask_heatmaps:
             return self.create_mask_montage(result, top_predictions)
-        result = self.overlay_boxes(result, top_predictions)
+        result = self.overlay_boxes(result, predictions)
         if self.cfg.MODEL.MASK_ON:
             result = self.overlay_mask(result, top_predictions)
         if self.cfg.MODEL.KEYPOINT_ON:
             result = self.overlay_keypoints(result, top_predictions)
-        result = self.overlay_class_names(result, top_predictions)
+        # result = self.overlay_class_names(result, top_predictions)
 
         return result
+        # return None
 
-    def compute_prediction(self, original_image):
+    def compute_prediction(self, original_image, image_name):
         """
         Arguments:
             original_image (np.ndarray): an image as returned by OpenCV
@@ -239,7 +242,7 @@ class COCODemo(object):
         image_list = image_list.to(self.device)
         # compute predictions
         with torch.no_grad():
-            predictions = self.model(image_list)
+            predictions = self.model(image_list, image_name=image_name)
         predictions = [o.to(self.cpu_device) for o in predictions]
 
         # always single image is passed at a time
