@@ -8,8 +8,98 @@ from maskrcnn_benchmark.modeling.backbone import resnet
 from maskrcnn_benchmark.modeling.poolers import Pooler
 from maskrcnn_benchmark.modeling.make_layers import group_norm
 from maskrcnn_benchmark.modeling.make_layers import make_fc
+from maskrcnn_benchmark.config import cfg
+import pickle
+from maskrcnn_benchmark.utils.c2_model_loading import _rename_weights_for_resnet
+# @registry.ROI_BOX_FEATURE_EXTRACTORS.register("ResNet50Conv5ROIFeatureExtractor")
+# class ResNet50Conv5ROIFeatureExtractor(nn.Module):
+#     def __init__(self, config, in_channels):
+#         super(ResNet50Conv5ROIFeatureExtractor, self).__init__()
+
+#         resolution = config.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION
+#         scales = config.MODEL.ROI_BOX_HEAD.POOLER_SCALES
+#         sampling_ratio = config.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
+#         pooler = Pooler(
+#             output_size=(resolution, resolution),
+#             scales=scales,
+#             sampling_ratio=sampling_ratio,
+#         )
+
+#         stage = resnet.StageSpec(index=4, block_count=3, return_features=False)
+#         head = resnet.ResNetHead(
+#             block_module=config.MODEL.RESNETS.TRANS_FUNC,
+#             stages=(stage,),
+#             num_groups=config.MODEL.RESNETS.NUM_GROUPS,
+#             width_per_group=config.MODEL.RESNETS.WIDTH_PER_GROUP,
+#             stride_in_1x1=config.MODEL.RESNETS.STRIDE_IN_1X1,
+#             stride_init=None,
+#             res2_out_channels=config.MODEL.RESNETS.RES2_OUT_CHANNELS,
+#             dilation=config.MODEL.RESNETS.RES5_DILATION
+#         )
+
+#         self.pooler = pooler
+#         self.head = head
+#         self.out_channels = head.out_channels
+
+#     def forward(self, x, proposals):
+#         x = self.pooler(x, proposals)
+#         x = self.head(x)
+#         return x
 
 
+key_words = ['layer4.0.downsample.0.weight',
+'layer4.0.downsample.1.weight',
+'layer4.0.downsample.1.bias',
+'layer4.0.downsample.1.running_mean',
+'layer4.0.downsample.1.running_var',
+'layer4.0.conv1.weight',
+'layer4.0.bn1.weight',
+'layer4.0.bn1.bias',
+'layer4.0.bn1.running_mean',
+'layer4.0.bn1.running_var',
+'layer4.0.conv2.weight',
+'layer4.0.bn2.weight',
+'layer4.0.bn2.bias',
+'layer4.0.bn2.running_mean',
+'layer4.0.bn2.running_var',
+'layer4.0.conv3.weight',
+'layer4.0.bn3.weight',
+'layer4.0.bn3.bias',
+'layer4.0.bn3.running_mean',
+'layer4.0.bn3.running_var',
+'layer4.1.conv1.weight',
+'layer4.1.bn1.weight',
+'layer4.1.bn1.bias',
+'layer4.1.bn1.running_mean',
+'layer4.1.bn1.running_var',
+'layer4.1.conv2.weight',
+'layer4.1.bn2.weight',
+'layer4.1.bn2.bias',
+'layer4.1.bn2.running_mean',
+'layer4.1.bn2.running_var',
+'layer4.1.conv3.weight',
+'layer4.1.bn3.weight',
+'layer4.1.bn3.bias',
+'layer4.1.bn3.running_mean',
+'layer4.1.bn3.running_var',
+'layer4.2.conv1.weight',
+'layer4.2.bn1.weight',
+'layer4.2.bn1.bias',
+'layer4.2.bn1.running_mean',
+'layer4.2.bn1.running_var',
+'layer4.2.conv2.weight',
+'layer4.2.bn2.weight',
+'layer4.2.bn2.bias',
+'layer4.2.bn2.running_mean',
+'layer4.2.bn2.running_var',
+'layer4.2.conv3.weight',
+'layer4.2.bn3.weight',
+'layer4.2.bn3.bias',
+'layer4.2.bn3.running_mean',
+'layer4.2.bn3.running_var']
+
+
+""" add the attached spatial feature extractor """
 @registry.ROI_BOX_FEATURE_EXTRACTORS.register("ResNet50Conv5ROIFeatureExtractor")
 class ResNet50Conv5ROIFeatureExtractor(nn.Module):
     def __init__(self, config, in_channels):
@@ -18,6 +108,7 @@ class ResNet50Conv5ROIFeatureExtractor(nn.Module):
         resolution = config.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION
         scales = config.MODEL.ROI_BOX_HEAD.POOLER_SCALES
         sampling_ratio = config.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
+
         pooler = Pooler(
             output_size=(resolution, resolution),
             scales=scales,
@@ -36,13 +127,71 @@ class ResNet50Conv5ROIFeatureExtractor(nn.Module):
             dilation=config.MODEL.RESNETS.RES5_DILATION
         )
 
+        model_parameters = head.state_dict()
+
+
+
+        if '.pkl' in cfg.MODEL.VG.RESNET_PARAMS_FILE:
+            with open(cfg.MODEL.VG.RESNET_PARAMS_FILE, 'rb') as f:
+                if torch._six.PY37:
+                    pretrained_paras = pickle.load(f, encoding="latin1")['blobs']
+                else:
+                    pretrained_paras = pickle.load(f)['blobs']
+
+            stages = ["1.2", "2.3", "3.5", "4.2"]
+            pretrained_paras = _rename_weights_for_resnet(pretrained_paras, stages)
+            pretrained_dict = {}
+            model_parameters.keys()
+            for k, v in pretrained_paras.items():
+                if k in list(model_parameters.keys()):
+                    print(k)
+                    pretrained_dict[k] = v
+
+        else:
+
+            pretrained_paras = torch.load(cfg.MODEL.VG.RESNET_PARAMS_FILE)['model']
+            pretrained_new = {}
+
+            keys_list = list(pretrained_paras.keys())
+            for keys in keys_list:
+                pretrained_new[keys] = pretrained_paras[keys].cpu()
+            pretrained_paras = pretrained_new
+
+            pretrained_dict = {}
+            model_parameters.keys()
+
+            print('loading pascal pretrained weights')
+            for key in key_words:
+                new_key = "module.roi_heads.box.feature_extractor.head." + key
+                if new_key in list(pretrained_paras.keys()):
+                    pretrained_dict[key] = pretrained_paras[new_key]
+                    print(key, '------>', new_key)
+
+        model_parameters.update(pretrained_dict)
+        head.load_state_dict(model_parameters)
+        print('loading bottom up attention feature done')
+
         self.pooler = pooler
         self.head = head
         self.out_channels = head.out_channels
 
+        spatial_dim = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION
+        if cfg.MODEL.VG.SPATIAL_FEAT:
+            self.spatial_transform = nn.Sequential(
+                            nn.Linear(2*spatial_dim*spatial_dim, 256),
+                            nn.ReLU()
+                            )
+
     def forward(self, x, proposals):
         x = self.pooler(x, proposals)
-        x = self.head(x)
+
+        if cfg.MODEL.VG.SPATIAL_FEAT:
+            spatial_feat = x[:, -2:, :, :]
+            x = self.head(x[:, :-2, :, :]).mean(3).mean(2).squeeze()  ## 100*2048
+            spatial_feat = self.spatial_transform(spatial_feat.contiguous().view(x.shape[0], -1))
+            x = torch.cat((x, spatial_feat), 1)
+        else:
+            x = self.head(x).mean(3).mean(2).squeeze()  ## 100*2048
         return x
 
 

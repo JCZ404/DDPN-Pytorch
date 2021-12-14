@@ -2,6 +2,7 @@
 import logging
 import time
 import os
+from numpy import record
 
 import torch
 from tqdm import tqdm
@@ -118,3 +119,65 @@ def inference(
                     predictions=predictions,
                     output_folder=output_folder,
                     **extra_args)
+
+
+""" add the val during training """
+def eval_while_train(cfg, model, curr_iter, data_loader, output_folder):
+    torch.cuda.empty_cache()
+    print("start testing while training...")
+
+    # only the first one for test 
+    model.eval()
+    results_dict = {}
+    device = torch.device('cuda')
+    cpu_device = torch.device("cpu")
+
+    for bid, (
+    images, targets, image_ids, phrase_ids, sent_ids, sentence, precompute_bbox, precompute_score, feature_map,
+    vocab_label_elmo, sent_sg, topN_box) in enumerate(tqdm(data_loader)):
+
+        # put the data into the cuda
+        vocab_label_elmo = [vocab.to(device) for vocab in vocab_label_elmo]
+        features_list = [feat.to(device) for feat in feature_map]
+
+        # forward pass without gradient
+        with torch.no_grad():
+
+            loss_dict, results = model(images, features_list, targets, phrase_ids, sentence, precompute_bbox,
+                                       precompute_score, image_ids, vocab_label_elmo, sent_sg, topN_box)
+
+            # collect and move result to cpu memory
+            moved_res = []
+               
+            batch_gt_boxes, batch_pred_box, batch_pred_similarity = results
+            for idx, each_gt_boxes in enumerate(batch_gt_boxes):
+                moved_res.append((each_gt_boxes.to(cpu_device),
+                                    batch_pred_box[idx].to(cpu_device),
+                                    batch_pred_similarity[idx].to(cpu_device)))
+
+            results_dict.update(
+                {img_id + '_' + sent_id: result
+                 for img_id, sent_id, result in zip(image_ids, sent_ids, moved_res)}
+            )
+
+    predictions = results_dict
+    image_sent_id = predictions.keys()
+
+    torch.cuda.empty_cache()
+    if not is_main_process():
+        return
+
+    # do evaluation
+    acc = evaluate(dataset=data_loader.dataset,
+                            predictions=predictions,
+                            image_ids=image_sent_id)
+
+    # print the evaluation information
+    print("Evaluation ......")
+    record = ""
+    for key, value in loss_dict.items():
+        record = record + key + ":" + str(value.data.cpu().numpy()) + "|"
+    record = record + "Current Accuracy:{}".format(acc)
+    print(record)
+    print("Evulation Done!")
+    return acc

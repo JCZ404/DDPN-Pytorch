@@ -1,5 +1,5 @@
 MODEL:
-  META_ARCHITECTURE: "GeneralizedRCNN"
+  META_ARCHITECTURE: "GeneralizedRCNNVG"
   WEIGHT: "catalog://ImageNetPretrained/MSRA/R-101"
   BACKBONE:
     CONV_BODY: "R-50-C4"
@@ -50,10 +50,10 @@ MODEL:
     FG_IOU_THRESHOLD: 0.5
     BG_IOU_THRESHOLD: 0.1
     FIXED_ROI_HEAD: True
-    VOCAB_FILE: "/data2/xrlin/LCMCG-PyTorch/flickr_datasets/skip-thoughts/vocab.json"
-    SKIP_THROUGH_DATA_DIR: "/data2/xrlin/LCMCG-PyTorch/flickr_datasets/skip-thoughts"
-    RESNET_PARAMS_FILE: "/data2/xrlin/LCMCG-PyTorch/flickr_datasets/bottom-up-pretrained/faster_rcnn_R-50-C4.pkl"
-    DETECTION_VOCAB_FILE: '/data2/xrlin/LCMCG-PyTorch/flickr_datasets/flickr30k_anno/object_vocab_genome.json'
+    VOCAB_FILE: "../flickr_datasets/skip-thoughts/vocab.json"
+    SKIP_THROUGH_DATA_DIR: "../flickr_datasets/skip-thoughts"
+    RESNET_PARAMS_FILE: "../flickr_datasets/bottom-up-pretrained/faster_rcnn_R-50-C4.pkl"
+    DETECTION_VOCAB_FILE: '../flickr_datasets/flickr30k_anno/object_vocab_genome.json'
     PHRASE_SELECT_TYPE: "mean"
     LANGUAGE_EMBED: "GRU"
     SPATIAL_FEAT: True
