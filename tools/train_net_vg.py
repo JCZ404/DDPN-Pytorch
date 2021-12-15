@@ -41,7 +41,7 @@ sys.path.append(current_path)
 torch.multiprocessing.set_sharing_strategy("file_system")
 torch.set_printoptions(precision=12)
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 def random_init(seed=0):
     """ Set the seed for random sampling of pytorch related random packages
     Args:
@@ -96,12 +96,15 @@ def train(cfg,  eval_while_training):
     else:
         output_dir = None
 
+    # set the checkpoint dir and interval
     checkpoint_output_dir = os.path.join(output_dir, 'checkpoints')
+    if not os.path.exists(checkpoint_output_dir):
+                        mkdir(checkpoint_output_dir)
     save_to_disk = get_rank() == 0
     checkpointer = DetectronCheckpointer(
         cfg, model, optimizer, scheduler, checkpoint_output_dir, save_to_disk
     )
-
+    checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
     """ do training """
     max_iter = len(data_loader)
@@ -147,7 +150,7 @@ def train(cfg,  eval_while_training):
 
         """ evaluate and save model """
         if eval_while_training:
-            if iteration % eval_interval == 0:
+            if iteration %  checkpoint_period  == 0:
                 # test while training
                 if val_data_loader is not None:
 
@@ -166,11 +169,17 @@ def train(cfg,  eval_while_training):
 
                         # save the better model
                         if curr_acc > best_result:
+                            # delete the older file
+                            del_list = os.listdir(checkpoint_output_dir)
+                            for f in del_list:
+                                file_path = os.path.join(checkpoint_output_dir,f)
+                                if os.path.isfile(file_path):
+                                    os.remove(file_path)
                             checkpointer.save("model_{:07d}".format(iteration))
 
                     model.train()
                     if cfg.MODEL.VG_ON and cfg.MODEL.VG.FIXED_RESNET:
-                        model.module.backbone.eval()
+                        model.backbone.eval()
 
         
 

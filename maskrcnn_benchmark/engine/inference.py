@@ -128,7 +128,8 @@ def eval_while_train(cfg, model, curr_iter, data_loader, output_folder):
 
     # only the first one for test 
     model.eval()
-    results_dict = {}
+    results_dict = {}       # save the eval dataset prediction
+    eval_loss_dict = {}     # save the eval dataset loss, use the flow data calculation https://blog.csdn.net/FrankieHello/article/details/89358530
     device = torch.device('cuda')
     cpu_device = torch.device("cpu")
 
@@ -141,10 +142,17 @@ def eval_while_train(cfg, model, curr_iter, data_loader, output_folder):
         features_list = [feat.to(device) for feat in feature_map]
 
         # forward pass without gradient
-        with torch.no_grad():
+        with torch.no_grad():  
 
             loss_dict, results = model(images, features_list, targets, phrase_ids, sentence, precompute_bbox,
-                                       precompute_score, image_ids, vocab_label_elmo, sent_sg, topN_box)
+                                       precompute_score, image_ids, vocab_label_elmo, sent_sg)
+
+            # calculate the flow avg los
+            for key, value in loss_dict.items():
+                if eval_loss_dict.get(key,None) is None:
+                    eval_loss_dict[key] = value
+                else:
+                    eval_loss_dict[key] = eval_loss_dict[key] + (value - eval_loss_dict[key])/(bid+1)
 
             # collect and move result to cpu memory
             moved_res = []
@@ -170,12 +178,13 @@ def eval_while_train(cfg, model, curr_iter, data_loader, output_folder):
     # do evaluation
     acc = evaluate(dataset=data_loader.dataset,
                             predictions=predictions,
-                            image_ids=image_sent_id)
+                            image_ids=image_sent_id,
+                            output_folder=None)
 
     # print the evaluation information
     print("Evaluation ......")
     record = ""
-    for key, value in loss_dict.items():
+    for key, value in eval_loss_dict.items():
         record = record + key + ":" + str(value.data.cpu().numpy()) + "|"
     record = record + "Current Accuracy:{}".format(acc)
     print(record)

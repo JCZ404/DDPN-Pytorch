@@ -37,3 +37,5 @@ dist/
 /output
 /flickr_datasets
 /demo/Mask_R-CNN_demo.ipynb
+/output
+/logs

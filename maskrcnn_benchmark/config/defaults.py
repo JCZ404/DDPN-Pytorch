@@ -561,8 +561,8 @@ _C.OUTPUT_DIR = "."
 _C.PATHS_CATALOG = os.path.join(os.path.dirname(__file__), "paths_catalog.py")
 
 
-_C.OUTPUT_DIR = "outputs/flickr_ResNet50_pascal/ddpnResNet50_softmax_lr_0p1_reg_0p5.hidden_1024_diverse.sent_graph_top10_visualGraph_two_stage_rel_sample2" 
-_C.SOLVER.IMS_PER_BATCH = 2
+_C.OUTPUT_DIR = "../outputs/flickr_ResNet50_pascal/ddpn" 
+_C.SOLVER.IMS_PER_BATCH = 32
 _C.SOLVER.TYPE = "SGD" 
 _C.SOLVER.BASE_LR = 0.1 
 _C.SOLVER.REGLOSS_FACTOR = 0.1 

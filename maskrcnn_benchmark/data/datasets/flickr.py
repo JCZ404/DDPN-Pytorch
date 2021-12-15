@@ -24,11 +24,11 @@ class Flickr(torch.utils.data.Dataset):
 
     def __init__(self, img_dir, anno_dir, split, transforms=None):
         super(Flickr, self).__init__()
-        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
-        print(img_dir)
-        print(anno_dir)
-        print(split)
-        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        # print(img_dir)
+        # print(anno_dir)
+        # print(split)
+        # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
         self.transforms = transforms
         self.img_root = img_dir
         self.sent_anno = json.load(open(osp.join(anno_dir, 'sent_anno.json'), 'r'))

@@ -17,7 +17,7 @@ def evaluate(dataset, predictions, output_folder, **kwargs):
         evaluation result
     """
     args = dict(
-        dataset=dataset, predictions=predictions, output_folder=output_folder, **kwargs
+        dataset=dataset, predictions=predictions, output_folder=output_folder,**kwargs  # add the other input parameter like image_ids
     )
     if isinstance(dataset, datasets.COCODataset):
         return coco_evaluation(**args)

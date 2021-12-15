@@ -6,7 +6,7 @@ import numpy as np
 import os.path as osp
 import os
 
-def eval_recall(dataset, predictions, image_ids):
+def eval_recall(dataset, predictions, image_ids, output_folder=None):
     total_num = 0
     recall_num = 0
     
